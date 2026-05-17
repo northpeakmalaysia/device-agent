@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@swarmai/plugin-sdk": ["./types/@swarmai/plugin-sdk/index.d.ts"],
+      "@swarmai/shared": ["./types/@swarmai/shared/index.d.ts"],
+      "@swarmai/tools": ["./types/@swarmai/tools/index.d.ts"],
+      "@swarmai/desktop": ["./types/@swarmai/desktop/index.d.ts"],
+      "@swarmai/cli-tools": ["./types/@swarmai/cli-tools/index.d.ts"]
+    },
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}

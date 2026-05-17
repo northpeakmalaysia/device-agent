@@ -1,0 +1,30 @@
+# SwarmAI Device Agent daemon (doc 37).
+#
+# This is NOT a plugin in the traditional sense — it's a standalone CLI
+# binary (`swarmai-device-agent`) operators install on a phone / laptop /
+# server to expose local tools (clipboard, screenshot, CLI wrappers) to a
+# remote SwarmAI gateway via an outbound WebSocket.
+#
+# We still ship a `swarmai-package.yaml` so the file layout matches the
+# rest of `F:\Published\Pluggins\swarmai-*` and so the Hub registry can
+# surface it. The `kind: tool` is loose — the host's plugin-loader will
+# not auto-load it (the daemon runs in its own process), but the manifest
+# is still valid for discovery purposes.
+id: '@swarmai/device-agent'
+version: '0.1.0'
+kind: 'tool'
+entry: './dist/main.js'
+permissions:
+  network: outbound        # opens WS to a user-configured gateway URL
+  filesystem: read-write   # config file at ~/.swarmai/device-agent.yaml
+  secrets: []
+capabilities:
+  - 'cli:bin'
+  - 'network:websocket-client'
+  - 'tool:invoke-local'
+platforms:
+  - darwin
+  - linux
+  - win32
+  - android   # via Termux
+androidNote: 'Detects Termux via $PREFIX === /data/data/com.termux/files/usr; --platform auto reports `android` in that case.'

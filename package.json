@@ -1,0 +1,58 @@
+{
+  "name": "@swarmai/device-agent",
+  "version": "0.1.0",
+  "description": "SwarmAI Device Agent daemon — opens an outbound WebSocket to a SwarmAI gateway and registers locally-available tools (clipboard, screenshot, CLI wrappers) for remote dispatch.",
+  "type": "module",
+  "bin": {
+    "swarmai-device-agent": "./bin/device-agent.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "swarmai-package.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/bundle.mjs",
+    "build:tsc": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "yaml": "^2.6.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "peerDependencies": {
+    "@swarmai/plugin-sdk": ">=0.5.0",
+    "@swarmai/shared": ">=0.5.0",
+    "@swarmai/tools": ">=0.5.0",
+    "@swarmai/desktop": ">=0.1.0",
+    "@swarmai/cli-tools": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@swarmai/plugin-sdk": { "optional": false },
+    "@swarmai/shared": { "optional": false },
+    "@swarmai/tools": { "optional": false },
+    "@swarmai/desktop": { "optional": false },
+    "@swarmai/cli-tools": { "optional": false }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.10",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0",
+    "zod": "^3.23.0"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "NorthPeak Malaysia <ops@northpeak.app>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/northpeakmalaysia/device-agent"
+  },
+  "homepage": "https://hub.northpeak.app",
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
