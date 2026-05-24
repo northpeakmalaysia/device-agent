@@ -1,7 +1,7 @@
 {
   "name": "@swarmai/device-agent",
-  "version": "0.1.0",
-  "description": "SwarmAI Device Agent daemon — opens an outbound WebSocket to a SwarmAI gateway and registers locally-available tools (clipboard, screenshot, CLI wrappers) for remote dispatch.",
+  "version": "0.2.0",
+  "description": "SwarmAI Device Agent daemon — opens an outbound WebSocket to a SwarmAI gateway, registers locally-available tools (clipboard, screenshot, CLI wrappers) for remote dispatch, and (new in 0.2.0) advertises any local Ollama / LM Studio so the device can serve as an AI provider to the gateway.",
   "type": "module",
   "bin": {
     "swarmai-device-agent": "./bin/device-agent.js"

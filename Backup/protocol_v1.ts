@@ -23,11 +23,6 @@ export const ServerMethods = {
   ToolInvoke: 'tool/invoke',
   DeviceDisconnect: 'device/disconnect',
   DevicePing: 'device/ping',
-  // Doc 47 — device-as-AI-provider request frames.
-  ProviderChat: 'provider/chat',
-  ProviderList: 'provider/list',
-  ProviderHealth: 'provider/health',
-  ProviderPull: 'provider/pull',
 } as const;
 
 /** Device → server methods (sent by us). */
@@ -37,9 +32,6 @@ export const DeviceMethods = {
   Heartbeat: 'device/heartbeat',
   ToolsChanged: 'device/tools-changed',
   Disconnect: 'device/disconnect',
-  // Doc 47 — announce local LLM backends; re-announce when they change.
-  ProviderAnnounce: 'provider/announce',
-  ProviderChanged: 'provider/changed',
 } as const;
 
 // ---------------------------------------------------------------------

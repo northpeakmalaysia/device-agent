@@ -37,12 +37,21 @@ import {
   DeviceMethods,
   ServerMethods,
   successResponse,
+  errorResponse,
   type DeviceAnnounceParams,
   type DeviceHeartbeatParams,
   type ToolInvokeParams,
   type ToolResultParams,
   type WelcomeParams,
 } from './protocol.js';
+import {
+  detectLocalProviders,
+  handleProviderChat,
+  handleProviderList,
+  handleProviderHealth,
+  handleProviderPull,
+  type ChatPayload,
+} from './providers.js';
 import { startHeartbeat, type HeartbeatHandle } from './heartbeat.js';
 import { InvocationTracker, processInvocation } from './invoke.js';
 import type { DeviceConfig } from './config.js';
@@ -215,6 +224,9 @@ export function startConnection(opts: ConnectionOptions): ConnectionHandle {
               if (receivedWelcome) return;
               receivedWelcome = true;
               void sendAnnounce(ws, opts.config, agentVersion, logger);
+              // Doc 47 — announce any local LLM backend so the gateway can
+              // (once the operator enables it) borrow this box's brain.
+              void sendProviderAnnounce(ws, logger, false);
               heartbeat?.stop();
               heartbeat = startHeartbeat({
                 send: (params: DeviceHeartbeatParams) =>
@@ -452,6 +464,70 @@ async function handleRequest(
       );
       return;
     }
+    // Doc 47 — device-as-AI-provider. Each replies with ONE response
+    // frame keyed by `id` (unlike tool/invoke's ack+notification), which
+    // is what the gateway's awaitWsReply expects. Computed off the await
+    // path so concurrent provider calls don't serialise.
+    case ServerMethods.ProviderChat: {
+      const p = (msg.params ?? {}) as { providerId?: string; payload?: unknown };
+      ctx.logger.rx(ServerMethods.ProviderChat, p.providerId ?? '?');
+      void (async () => {
+        try {
+          const result = await handleProviderChat(
+            p.providerId ?? 'ollama',
+            (p.payload ?? {}) as ChatPayload,
+          );
+          safeSend(ctx.ws, encodeFrame(successResponse(id, result)), ctx.logger);
+        } catch (err) {
+          safeSend(
+            ctx.ws,
+            encodeFrame(errorResponse(id, -32000, err instanceof Error ? err.message : String(err))),
+            ctx.logger,
+          );
+        }
+      })();
+      return;
+    }
+    case ServerMethods.ProviderList: {
+      const p = (msg.params ?? {}) as { providerId?: string };
+      void (async () => {
+        try {
+          const result = await handleProviderList(p.providerId ?? 'ollama');
+          safeSend(ctx.ws, encodeFrame(successResponse(id, result)), ctx.logger);
+        } catch (err) {
+          safeSend(
+            ctx.ws,
+            encodeFrame(errorResponse(id, -32000, err instanceof Error ? err.message : String(err))),
+            ctx.logger,
+          );
+        }
+      })();
+      return;
+    }
+    case ServerMethods.ProviderHealth: {
+      const p = (msg.params ?? {}) as { providerId?: string };
+      void (async () => {
+        const result = await handleProviderHealth(p.providerId ?? 'ollama');
+        safeSend(ctx.ws, encodeFrame(successResponse(id, result)), ctx.logger);
+      })();
+      return;
+    }
+    case ServerMethods.ProviderPull: {
+      const p = (msg.params ?? {}) as { providerId?: string; model?: string };
+      const model = typeof p.model === 'string' ? p.model : '';
+      if (!model) {
+        safeSend(ctx.ws, encodeFrame(errorResponse(id, -32602, 'model required')), ctx.logger);
+        return;
+      }
+      ctx.logger.rx(ServerMethods.ProviderPull, `${p.providerId ?? 'ollama'}:${model}`);
+      const ack = handleProviderPull(p.providerId ?? 'ollama', model, (ok, detail) => {
+        ctx.logger.state(`provider pull ${ok ? 'done' : 'failed'}: ${detail}`);
+        // Re-announce so the gateway picks up the newly-available model.
+        void sendProviderAnnounce(ctx.ws, ctx.logger, true);
+      });
+      safeSend(ctx.ws, encodeFrame(successResponse(id, ack)), ctx.logger);
+      return;
+    }
     default:
       ctx.logger.error(`method not found: ${msg.method}`);
       safeSend(
@@ -522,6 +598,28 @@ async function sendAnnounce(
   };
   logger.tx(DeviceMethods.Announce, `${tools.length} tools`);
   safeSend(ws, encodeFrame(notification(DeviceMethods.Announce, params)), logger);
+}
+
+/**
+ * Doc 47 — detect local LLM backends and announce them to the gateway.
+ * `changed=true` uses the `provider/changed` verb (re-announce after a
+ * model pull); the gateway treats both identically.
+ */
+async function sendProviderAnnounce(
+  ws: WebSocket,
+  logger: Logger,
+  changed: boolean,
+): Promise<void> {
+  let providers: Awaited<ReturnType<typeof detectLocalProviders>> = [];
+  try {
+    providers = await detectLocalProviders();
+  } catch (err) {
+    logger.error('detectLocalProviders failed (announcing none)', err);
+  }
+  const method = changed ? DeviceMethods.ProviderChanged : DeviceMethods.ProviderAnnounce;
+  const modelCount = providers.reduce((n, p) => n + p.models.length, 0);
+  logger.tx(method, `${providers.length} backend(s), ${modelCount} model(s)`);
+  safeSend(ws, encodeFrame(notification(method, { providers })), logger);
 }
 
 function safeSend(ws: WebSocket, frame: string, logger?: Logger): void {
